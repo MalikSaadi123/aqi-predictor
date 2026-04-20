@@ -248,11 +248,33 @@ with st.spinner("Loading model and data..."):
             st.plotly_chart(fig2, use_container_width=True)
 
         with st.expander("🔍 Feature Importance (SHAP)"):
-            shap_path = os.path.join(os.path.dirname(__file__), "shap_plot.png")
-            if os.path.exists(shap_path):
-                st.image(shap_path, caption="SHAP Feature Importance")
-            else:
-                st.info("SHAP plot not available.")
+            try:
+                import shap
+                explainer = shap.Explainer(model.predict, X_future.values)
+                shap_values = explainer(X_future.values)
+                importance = np.abs(shap_values.values).mean(axis=0)
+                shap_df = pd.DataFrame({
+                    "Feature": used_features,
+                    "Importance": importance
+                }).sort_values("Importance", ascending=True)
+
+                fig_shap = go.Figure()
+                fig_shap.add_trace(go.Bar(
+                    x=shap_df["Importance"],
+                    y=shap_df["Feature"],
+                    orientation="h",
+                    marker_color="#EF553B"
+                ))
+                fig_shap.update_layout(
+                    title="SHAP Feature Importance",
+                    xaxis_title="Mean |SHAP Value|",
+                    yaxis_title="Feature",
+                    height=500,
+                    margin=dict(l=0, r=0, t=40, b=0)
+                )
+                st.plotly_chart(fig_shap, use_container_width=True)
+            except Exception as shap_err:
+                st.warning(f"SHAP error: {shap_err}")
 
     except Exception as e:
         import traceback
