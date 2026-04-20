@@ -64,24 +64,25 @@ def load_recent_features(city: str) -> pd.DataFrame:
 
 @st.cache_data(ttl=3600)
 def fetch_future_weather() -> pd.DataFrame:
-    # Hardcoded Islamabad coordinates — bypasses geocoding issues
     lat = 33.72148
     lon = 73.04329
     url = (
         f"https://api.open-meteo.com/v1/forecast?"
         f"latitude={lat}&longitude={lon}"
         f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,precipitation"
-        f"&forecast_days=4&timezone=auto"
+        f"&forecast_days=4&timezone=UTC"
     )
-    data = requests.get(url, timeout=10).json()
+    resp = requests.get(url, timeout=10)
+    data = resp.json()
+    hourly = data.get("hourly", {})
     df = pd.DataFrame({
-        "timestamp":     pd.to_datetime(data["hourly"]["time"]),
-        "temperature":   data["hourly"]["temperature_2m"],
-        "humidity":      data["hourly"]["relativehumidity_2m"],
-        "windspeed":     data["hourly"]["windspeed_10m"],
-        "precipitation": data["hourly"]["precipitation"],
+        "timestamp":     pd.to_datetime(hourly["time"]),
+        "temperature":   hourly["temperature_2m"],
+        "humidity":      hourly["relativehumidity_2m"],
+        "windspeed":     hourly["windspeed_10m"],
+        "precipitation": hourly["precipitation"],
     })
-    return df[df["timestamp"] > datetime.now()].head(72)
+    return df.head(72)
 
 
 def build_forecast_features(future_weather: pd.DataFrame, history: pd.DataFrame, feature_names: list):
