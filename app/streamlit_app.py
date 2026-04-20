@@ -183,7 +183,7 @@ with st.spinner("Loading model and data..."):
                                  mode="lines+markers", marker=dict(size=4)))
         fig.add_vline(x=datetime.now().isoformat(), line_dash="dot", line_color="gray", annotation_text="Now")
         fig.update_layout(xaxis_title="Time", yaxis_title="AQI",
-                          yaxis_range=[0, max(300, peak_3day + 20)],
+                          yaxis_range=[0, max(300, int(peak_3day) + 20)],
                           legend=dict(orientation="h", y=1.08),
                           height=400, margin=dict(l=0, r=0, t=20, b=0))
         st.plotly_chart(fig, use_container_width=True)
