@@ -181,7 +181,7 @@ with st.spinner("Loading model and data..."):
         fig.add_trace(go.Scatter(x=df_future["timestamp"], y=df_future["predicted_aqi"],
                                  name="Forecast AQI", line=dict(color="#EF553B", width=2, dash="dash"),
                                  mode="lines+markers", marker=dict(size=4)))
-        fig.add_vline(x=datetime.now(), line_dash="dot", line_color="gray", annotation_text="Now")
+        fig.add_vline(x=datetime.now().isoformat(), line_dash="dot", line_color="gray", annotation_text="Now")
         fig.update_layout(xaxis_title="Time", yaxis_title="AQI",
                           yaxis_range=[0, max(300, peak_3day + 20)],
                           legend=dict(orientation="h", y=1.08),
