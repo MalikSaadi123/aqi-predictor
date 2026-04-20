@@ -1,4 +1,4 @@
-hopsworks>=3.7
+hopsworks==4.7.*
 scikit-learn>=1.4
 pandas>=2.2
 numpy>=1.26
@@ -9,4 +9,4 @@ streamlit>=1.35
 plotly>=5.20
 tqdm>=4.66
 matplotlib>=3.8
-tensorflow>=2.16        # optional — comment out if not needed
+confluent-kafka
