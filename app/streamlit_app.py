@@ -213,6 +213,8 @@ with st.spinner("Loading model and data..."):
             st.info("SHAP plot not available. Run the training pipeline first.")
 
     except Exception as e:
+        import traceback
         st.error(f"Error loading data: {e}")
+        st.code(traceback.format_exc())
         st.info("Make sure your HOPSWORKS_API_KEY and AQICN_TOKEN are set as environment variables, "
                 "and the feature + training pipelines have run at least once.")
