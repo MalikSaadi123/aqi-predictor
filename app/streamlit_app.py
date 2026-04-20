@@ -18,6 +18,7 @@ st.set_page_config(
 )
 
 HOPSWORKS_KEY = os.environ["HOPSWORKS_API_KEY"]
+st.cache_data.clear()
 CITY          = os.environ.get("CITY", "islamabad")
 
 AQI_LEVELS = [
