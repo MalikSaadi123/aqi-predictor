@@ -1,0 +1,31 @@
+name: Feature Pipeline (Hourly)
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # every hour
+  workflow_dispatch:        # allow manual trigger
+
+jobs:
+  run-feature-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run feature pipeline
+        env:
+          AQICN_TOKEN:        ${{ secrets.AQICN_TOKEN }}
+          HOPSWORKS_API_KEY:  ${{ secrets.HOPSWORKS_API_KEY }}
+          OPENAQ_KEY:         ${{ secrets.OPENAQ_KEY }}
+          CITY:               ${{ vars.CITY || 'rawalpindi' }}
+        run: python pipelines/feature_pipeline.py
