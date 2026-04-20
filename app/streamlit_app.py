@@ -133,8 +133,6 @@ with st.spinner("Loading model and data..."):
     try:
         model, feature_names, metrics = load_model_and_features()
         history_df = load_recent_features(city_input)
-        st.write(f"History rows: {len(history_df)}")
-        st.write(f"History columns: {list(history_df.columns)}")
         future_wx  = fetch_future_weather()
         df_future, X_future, used_features = build_forecast_features(future_wx, history_df, feature_names)
 
@@ -190,6 +188,43 @@ with st.spinner("Loading model and data..."):
                           legend=dict(orientation="h", y=1.08),
                           height=400, margin=dict(l=0, r=0, t=20, b=0))
         st.plotly_chart(fig, use_container_width=True)
+
+        # ── EDA SECTION ───────────────────────────────────────────────────────
+        st.markdown("---")
+        st.subheader("📊 Exploratory Data Analysis")
+        try:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**AQI Distribution**")
+                fig_hist = go.Figure()
+                fig_hist.add_trace(go.Histogram(x=history_df["aqi"], nbinsx=20, marker_color="#636EFA"))
+                fig_hist.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="AQI", yaxis_title="Count")
+                st.plotly_chart(fig_hist, use_container_width=True)
+            with col2:
+                st.markdown("**AQI Over Time**")
+                fig_trend = go.Figure()
+                fig_trend.add_trace(go.Scatter(x=history_df["timestamp"], y=history_df["aqi"], mode="lines", line=dict(color="#EF553B")))
+                fig_trend.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="Time", yaxis_title="AQI")
+                st.plotly_chart(fig_trend, use_container_width=True)
+            col3, col4 = st.columns(2)
+            with col3:
+                st.markdown("**AQI by Hour of Day**")
+                hourly_avg = history_df.groupby("hour")["aqi"].mean().reset_index()
+                fig_hour = go.Figure()
+                fig_hour.add_trace(go.Bar(x=hourly_avg["hour"], y=hourly_avg["aqi"], marker_color="#00CC96"))
+                fig_hour.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="Hour", yaxis_title="Avg AQI")
+                st.plotly_chart(fig_hour, use_container_width=True)
+            with col4:
+                st.markdown("**Temperature vs AQI**")
+                fig_scatter = go.Figure()
+                fig_scatter.add_trace(go.Scatter(x=history_df["temperature"], y=history_df["aqi"], mode="markers", marker=dict(color="#AB63FA", size=4)))
+                fig_scatter.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="Temperature (°C)", yaxis_title="AQI")
+                st.plotly_chart(fig_scatter, use_container_width=True)
+            st.markdown("**📈 AQI Statistics**")
+            stats = history_df["aqi"].describe().round(2)
+            st.dataframe(stats.to_frame().T, use_container_width=True)
+        except Exception as eda_err:
+            st.warning(f"EDA error: {eda_err}")
 
         # ── DAILY SUMMARY ─────────────────────────────────────────────────────
         st.subheader("📆 3-Day Daily Summary")
