@@ -248,7 +248,11 @@ with st.spinner("Loading model and data..."):
             st.plotly_chart(fig2, use_container_width=True)
 
         with st.expander("🔍 Feature Importance (SHAP)"):
-            st.info("SHAP plot not available. Run the training pipeline first.")
+            shap_path = os.path.join(os.path.dirname(__file__), "shap_plot.png")
+            if os.path.exists(shap_path):
+                st.image(shap_path, caption="SHAP Feature Importance")
+            else:
+                st.info("SHAP plot not available.")
 
     except Exception as e:
         import traceback
