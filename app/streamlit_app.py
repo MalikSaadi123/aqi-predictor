@@ -133,6 +133,8 @@ with st.spinner("Loading model and data..."):
     try:
         model, feature_names, metrics = load_model_and_features()
         history_df = load_recent_features(city_input)
+        st.write(f"History rows: {len(history_df)}")
+        st.write(f"History columns: {list(history_df.columns)}")
         future_wx  = fetch_future_weather()
         df_future, X_future, used_features = build_forecast_features(future_wx, history_df, feature_names)
 
