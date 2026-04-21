@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+hopsworks==4.7.4
+joblib
+numpy
+pandas
+requests
+scikit-learn
