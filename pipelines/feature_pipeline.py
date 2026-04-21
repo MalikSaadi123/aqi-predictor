@@ -130,6 +130,13 @@ def add_lag_and_change_rate(df: pd.DataFrame, history_df: pd.DataFrame) -> pd.Da
 
 # ── 3. STORE IN HOPSWORKS FEATURE STORE ─────────────────────────────────────
 def push_to_feature_store(df: pd.DataFrame):
+    # Fill null pollutant columns with 0.0 to avoid dtype issues
+    for col in ["pm25", "pm10", "no2", "o3", "co", "so2"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+    if "aqi_category" in df.columns:
+        df["aqi_category"] = df["aqi_category"].astype(str)
+
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     fs = project.get_feature_store()
 
