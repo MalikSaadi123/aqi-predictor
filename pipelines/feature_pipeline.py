@@ -45,7 +45,7 @@ def compute_features(aqi_data: dict, weather_data: dict) -> pd.DataFrame:
     current_i = max(0, (times <= pd.Timestamp(now)).sum() - 1)
 
     temperature   = float(hourly["temperature_2m"][current_i])
-    humidity      = float(hourly["relativehumidity_2m"][current_i])
+    humidity      = int(hourly["relativehumidity_2m"][current_i])
     windspeed     = float(hourly["windspeed_10m"][current_i])
     precipitation = float(hourly["precipitation"][current_i])
 
@@ -76,14 +76,14 @@ def compute_features(aqi_data: dict, weather_data: dict) -> pd.DataFrame:
         "city":           CITY,
         "aqi":            aqi,
         "temperature":    temperature,
-        "humidity":       humidity,
+        "humidity":      int(humidity),
         "windspeed":      windspeed,
         "precipitation":  precipitation,
         "hour":           np.int32(hour),
         "day":            np.int32(day),
         "month":          np.int32(month),
         "weekday":        np.int32(weekday),
-        "is_weekend":     np.int32(is_weekend),
+        "is_weekend":     int(is_weekend),
         "hour_sin":       hour_sin,
         "hour_cos":       hour_cos,
         "month_sin":      month_sin,
