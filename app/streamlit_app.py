@@ -19,16 +19,16 @@ st.set_page_config(
 
 HOPSWORKS_KEY = os.environ["HOPSWORKS_API_KEY"]
 st.cache_data.clear()
-CITY          = os.environ.get("CITY", "islamabad")
+CITY        = os.environ.get("CITY", "islamabad")
 AQICN_TOKEN = os.environ.get("AQICN_TOKEN", "")
 
 AQI_LEVELS = [
-    (0,   50,  "#00e400", "Good",                          "Air quality is satisfactory."),
-    (51,  100, "#ffff00", "Moderate",                      "Acceptable quality; some pollutants may concern sensitive groups."),
-    (101, 150, "#ff7e00", "Unhealthy for Sensitive Groups", "Members of sensitive groups may experience effects."),
-    (151, 200, "#ff0000", "Unhealthy",                     "Everyone may begin to experience health effects."),
-    (201, 300, "#8f3f97", "Very Unhealthy",                "Health alert — everyone may experience serious effects."),
-    (301, 500, "#7e0023", "Hazardous",                     "Emergency conditions. Entire population is likely affected."),
+    (0,   50,  "#00e400", "Good",                           "Air quality is satisfactory."),
+    (51,  100, "#ffff00", "Moderate",                       "Acceptable quality; some pollutants may concern sensitive groups."),
+    (101, 150, "#ff7e00", "Unhealthy for Sensitive Groups",  "Members of sensitive groups may experience effects."),
+    (151, 200, "#ff0000", "Unhealthy",                      "Everyone may begin to experience health effects."),
+    (201, 300, "#8f3f97", "Very Unhealthy",                 "Health alert — everyone may experience serious effects."),
+    (301, 500, "#7e0023", "Hazardous",                      "Emergency conditions. Entire population is likely affected."),
 ]
 
 def aqi_info(value: float):
@@ -74,8 +74,8 @@ def fetch_future_weather() -> pd.DataFrame:
         f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,precipitation"
         f"&forecast_days=4&timezone=UTC"
     )
-    resp = requests.get(url, timeout=10)
-    data = resp.json()
+    resp   = requests.get(url, timeout=10)
+    data   = resp.json()
     hourly = data.get("hourly", {})
     df = pd.DataFrame({
         "timestamp":     pd.to_datetime(hourly["time"]),
@@ -85,6 +85,18 @@ def fetch_future_weather() -> pd.DataFrame:
         "precipitation": hourly["precipitation"],
     })
     return df.head(72)
+
+
+@st.cache_data(ttl=1800)
+def fetch_real_aqi(city: str, token: str) -> float:
+    try:
+        url  = f"https://api.waqi.info/feed/{city}/?token={token}"
+        resp = requests.get(url, timeout=10).json()
+        if resp["status"] == "ok":
+            return float(resp["data"]["aqi"])
+    except Exception:
+        pass
+    return None
 
 
 def build_forecast_features(future_weather: pd.DataFrame, history: pd.DataFrame, feature_names: list):
@@ -140,16 +152,9 @@ with st.spinner("Loading model and data..."):
         predictions = model.predict(X_future.values)
         df_future["predicted_aqi"] = np.clip(predictions, 0, 500)
 
-        # Fetch real current AQI from AQICN
-    try:
-        aqicn_url = f"https://api.waqi.info/feed/{city_input}/?token={AQICN_TOKEN}"
-        aqicn_resp = requests.get(aqicn_url, timeout=10).json()
-        if aqicn_resp["status"] == "ok":
-            current_aqi = float(aqicn_resp["data"]["aqi"])
-        else:
-            current_aqi = float(predictions[0])
-    except Exception:
-        current_aqi = float(predictions[0])
+        # Use real AQI from AQICN for current reading
+        real_aqi = fetch_real_aqi(city_input, AQICN_TOKEN)
+        current_aqi = real_aqi if real_aqi is not None else float(predictions[0])
         color, label, desc = aqi_info(current_aqi)
 
         col1, col2, col3 = st.columns(3)
@@ -192,7 +197,8 @@ with st.spinner("Loading model and data..."):
         fig.add_trace(go.Scatter(x=df_future["timestamp"], y=df_future["predicted_aqi"],
                                  name="Forecast AQI", line=dict(color="#EF553B", width=2, dash="dash"),
                                  mode="lines+markers", marker=dict(size=4)))
-        fig.add_vline(x=pd.Timestamp.now().timestamp() * 1000, line_dash="dot", line_color="gray", annotation_text="Now")
+        fig.add_vline(x=pd.Timestamp.now().timestamp() * 1000, line_dash="dot",
+                      line_color="gray", annotation_text="Now")
         fig.update_layout(xaxis_title="Time", yaxis_title="AQI",
                           yaxis_range=[0, 400],
                           legend=dict(orientation="h", y=1.08),
@@ -208,27 +214,34 @@ with st.spinner("Loading model and data..."):
                 st.markdown("**AQI Distribution**")
                 fig_hist = go.Figure()
                 fig_hist.add_trace(go.Histogram(x=history_df["aqi"], nbinsx=20, marker_color="#636EFA"))
-                fig_hist.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="AQI", yaxis_title="Count")
+                fig_hist.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
+                                       xaxis_title="AQI", yaxis_title="Count")
                 st.plotly_chart(fig_hist, use_container_width=True)
             with col2:
                 st.markdown("**AQI Over Time**")
                 fig_trend = go.Figure()
-                fig_trend.add_trace(go.Scatter(x=history_df["timestamp"], y=history_df["aqi"], mode="lines", line=dict(color="#EF553B")))
-                fig_trend.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="Time", yaxis_title="AQI")
+                fig_trend.add_trace(go.Scatter(x=history_df["timestamp"], y=history_df["aqi"],
+                                               mode="lines", line=dict(color="#EF553B")))
+                fig_trend.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
+                                        xaxis_title="Time", yaxis_title="AQI")
                 st.plotly_chart(fig_trend, use_container_width=True)
             col3, col4 = st.columns(2)
             with col3:
                 st.markdown("**AQI by Hour of Day**")
                 hourly_avg = history_df.groupby("hour")["aqi"].mean().reset_index()
                 fig_hour = go.Figure()
-                fig_hour.add_trace(go.Bar(x=hourly_avg["hour"], y=hourly_avg["aqi"], marker_color="#00CC96"))
-                fig_hour.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="Hour", yaxis_title="Avg AQI")
+                fig_hour.add_trace(go.Bar(x=hourly_avg["hour"], y=hourly_avg["aqi"],
+                                          marker_color="#00CC96"))
+                fig_hour.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
+                                       xaxis_title="Hour", yaxis_title="Avg AQI")
                 st.plotly_chart(fig_hour, use_container_width=True)
             with col4:
                 st.markdown("**Temperature vs AQI**")
                 fig_scatter = go.Figure()
-                fig_scatter.add_trace(go.Scatter(x=history_df["temperature"], y=history_df["aqi"], mode="markers", marker=dict(color="#AB63FA", size=4)))
-                fig_scatter.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="Temperature (°C)", yaxis_title="AQI")
+                fig_scatter.add_trace(go.Scatter(x=history_df["temperature"], y=history_df["aqi"],
+                                                 mode="markers", marker=dict(color="#AB63FA", size=4)))
+                fig_scatter.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
+                                          xaxis_title="Temperature (°C)", yaxis_title="AQI")
                 st.plotly_chart(fig_scatter, use_container_width=True)
             st.markdown("**📈 AQI Statistics**")
             stats = history_df["aqi"].describe().round(2)
@@ -260,28 +273,20 @@ with st.spinner("Loading model and data..."):
         with st.expander("🔍 Feature Importance (SHAP)"):
             try:
                 import shap
-                explainer = shap.Explainer(model.predict, X_future.values)
+                explainer  = shap.Explainer(model.predict, X_future.values)
                 shap_values = explainer(X_future.values)
-                importance = np.abs(shap_values.values).mean(axis=0)
+                importance  = np.abs(shap_values.values).mean(axis=0)
                 shap_df = pd.DataFrame({
-                    "Feature": used_features,
+                    "Feature":    used_features,
                     "Importance": importance
                 }).sort_values("Importance", ascending=True)
-
                 fig_shap = go.Figure()
-                fig_shap.add_trace(go.Bar(
-                    x=shap_df["Importance"],
-                    y=shap_df["Feature"],
-                    orientation="h",
-                    marker_color="#EF553B"
-                ))
-                fig_shap.update_layout(
-                    title="SHAP Feature Importance",
-                    xaxis_title="Mean |SHAP Value|",
-                    yaxis_title="Feature",
-                    height=500,
-                    margin=dict(l=0, r=0, t=40, b=0)
-                )
+                fig_shap.add_trace(go.Bar(x=shap_df["Importance"], y=shap_df["Feature"],
+                                          orientation="h", marker_color="#EF553B"))
+                fig_shap.update_layout(title="SHAP Feature Importance",
+                                       xaxis_title="Mean |SHAP Value|",
+                                       yaxis_title="Feature",
+                                       height=500, margin=dict(l=0, r=0, t=40, b=0))
                 st.plotly_chart(fig_shap, use_container_width=True)
             except Exception as shap_err:
                 st.warning(f"SHAP error: {shap_err}")
@@ -290,62 +295,3 @@ with st.spinner("Loading model and data..."):
         import traceback
         st.error(f"Error loading data: {e}")
         st.code(traceback.format_exc())
-        with st.expander("🔍 Feature Importance (SHAP)"):
-            st.info("SHAP plot not available. Run the training pipeline first.")
-
-        # ── EDA SECTION ───────────────────────────────────────────────────────
-        st.markdown("---")
-        st.subheader("📊 Exploratory Data Analysis")
-
-        if len(history_df) > 0:
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.markdown("**AQI Distribution**")
-                fig_hist = go.Figure()
-                fig_hist.add_trace(go.Histogram(x=history_df["aqi"], nbinsx=20,
-                                               marker_color="#636EFA"))
-                fig_hist.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
-                                      xaxis_title="AQI", yaxis_title="Count")
-                st.plotly_chart(fig_hist, use_container_width=True)
-
-            with col2:
-                st.markdown("**AQI Over Time**")
-                fig_trend = go.Figure()
-                fig_trend.add_trace(go.Scatter(x=history_df["timestamp"],
-                                              y=history_df["aqi"],
-                                              mode="lines", line=dict(color="#EF553B")))
-                fig_trend.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
-                                       xaxis_title="Time", yaxis_title="AQI")
-                st.plotly_chart(fig_trend, use_container_width=True)
-
-            col3, col4 = st.columns(2)
-
-            with col3:
-                st.markdown("**AQI by Hour of Day**")
-                if "hour" in history_df.columns:
-                    hourly_avg = history_df.groupby("hour")["aqi"].mean().reset_index()
-                    fig_hour = go.Figure()
-                    fig_hour.add_trace(go.Bar(x=hourly_avg["hour"], y=hourly_avg["aqi"],
-                                            marker_color="#00CC96"))
-                    fig_hour.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
-                                          xaxis_title="Hour", yaxis_title="Avg AQI")
-                    st.plotly_chart(fig_hour, use_container_width=True)
-
-            with col4:
-                st.markdown("**Temperature vs AQI**")
-                if "temperature" in history_df.columns:
-                    fig_scatter = go.Figure()
-                    fig_scatter.add_trace(go.Scatter(x=history_df["temperature"],
-                                                    y=history_df["aqi"],
-                                                    mode="markers",
-                                                    marker=dict(color="#AB63FA", size=4)))
-                    fig_scatter.update_layout(height=300, margin=dict(l=0,r=0,t=10,b=0),
-                                             xaxis_title="Temperature (°C)", yaxis_title="AQI")
-                    st.plotly_chart(fig_scatter, use_container_width=True)
-
-            st.markdown("**📈 AQI Statistics**")
-            stats = history_df["aqi"].describe().round(2)
-            st.dataframe(stats.to_frame().T, use_container_width=True)
-        else:
-            st.info("No historical data available for EDA.")
