@@ -20,6 +20,7 @@ st.set_page_config(
 HOPSWORKS_KEY = os.environ["HOPSWORKS_API_KEY"]
 st.cache_data.clear()
 CITY          = os.environ.get("CITY", "islamabad")
+AQICN_TOKEN = os.environ.get("AQICN_TOKEN", "")
 
 AQI_LEVELS = [
     (0,   50,  "#00e400", "Good",                          "Air quality is satisfactory."),
@@ -139,7 +140,16 @@ with st.spinner("Loading model and data..."):
         predictions = model.predict(X_future.values)
         df_future["predicted_aqi"] = np.clip(predictions, 0, 500)
 
-        current_aqi = float(history_df["aqi"].iloc[-1]) if len(history_df) else float(predictions[0])
+        # Fetch real current AQI from AQICN
+try:
+    aqicn_url = f"https://api.waqi.info/feed/{city_input}/?token={AQICN_TOKEN}"
+    aqicn_resp = requests.get(aqicn_url, timeout=10).json()
+    if aqicn_resp["status"] == "ok":
+        current_aqi = float(aqicn_resp["data"]["aqi"])
+    else:
+        current_aqi = float(predictions[0])
+except Exception:
+    current_aqi = float(predictions[0])
         color, label, desc = aqi_info(current_aqi)
 
         col1, col2, col3 = st.columns(3)
