@@ -141,29 +141,39 @@ def compute_shap(model, X_train, feature_names: list, output_dir: str = "models"
 
 
 # ── 4. SAVE BEST MODEL TO HOPSWORKS MODEL REGISTRY ──────────────────────────
-def save_to_registry(best: dict, feature_names: list, metrics: dict):
-    joblib.dump(best["model"], "models/best_model.pkl")
+def save_to_registry(model, feature_names: list, metrics: dict):
+    import os, json, shutil
+
+    # Save all files into one folder
+    os.makedirs("models", exist_ok=True)
+    joblib.dump(model, "models/best_model.pkl")
+
     with open("models/feature_names.json", "w") as f:
         json.dump(feature_names, f)
+
     with open("models/metrics.json", "w") as f:
-        json.dump(metrics, f)
+        json.dump({k: float(v) for k, v in metrics.items()}, f)
 
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     mr = project.get_model_registry()
 
+    # Auto-increment version
+    version = 1
+    while True:
+        try:
+            mr.get_model("aqi_predictor", version=version)
+            version += 1
+        except Exception:
+            break
+
     model_dir = mr.sklearn.create_model(
         name="aqi_predictor",
+        version=version,
         metrics=metrics,
-        description=f"Best AQI model: {best['name']}",
-        input_example=[0.0] * len(feature_names),
-        model_schema=None,
+        description=f"Best AQI model: {type(model).__name__}",
     )
-    model_dir.save("models/best_model.pkl")
-    model_dir.save("models/feature_names.json")
-    if os.path.exists("models/shap_feature_importance.png"):
-        model_dir.save("models/shap_feature_importance.png")
-
-    print(f"✅ Model '{best['name']}' saved to Hopsworks Model Registry.")
+    model_dir.save("models")   # ← saves entire folder at once
+    print(f"✅ Model saved as version {version}!")
 
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
