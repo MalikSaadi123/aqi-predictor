@@ -172,7 +172,7 @@ def save_to_registry(model, feature_names: list, metrics: dict):
         metrics=metrics,
         description=f"Best AQI model: {type(model).__name__}",
     )
-    model_dir.save("models")   # ← saves entire folder at once
+    model_dir.save("models/best_model.pkl")
     print(f"✅ Model saved as version {version}!")
 
 
