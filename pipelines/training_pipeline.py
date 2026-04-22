@@ -199,5 +199,4 @@ if __name__ == "__main__":
         compute_shap(best["model"], X_train, feature_names)
 
     metrics = {"rmse": best["rmse"], "mae": best["mae"], "r2": best["r2"]}
-    save_to_registry(best, feature_names, metrics)
-    print("\nTraining pipeline complete.")
+    print(f"✅ Training complete. Best: {best_name} RMSE={metrics['rmse']:.4f}")
