@@ -154,7 +154,6 @@ with st.spinner("Loading model and data..."):
 
         # Use real AQI from AQICN for current reading
         real_aqi = fetch_real_aqi(city_input, AQICN_TOKEN)
-        st.write(f"DEBUG — AQICN returned: {real_aqi}, Token: {AQICN_TOKEN[:5]}...")
         current_aqi = real_aqi if real_aqi is not None else float(predictions[0])
         color, label, desc = aqi_info(current_aqi)
 
