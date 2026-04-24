@@ -57,8 +57,13 @@ def load_model_and_features():
 def load_recent_features(city: str) -> pd.DataFrame:
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     fs = project.get_feature_store()
-    fg = fs.get_feature_group("aqi_features", version=2)
-    df = fg.filter(fg.city == city.lower()).read()
+    try:
+        fg = fs.get_feature_group("aqi_features", version=2)
+        df = fg.read()
+    except:
+        fg = fs.get_feature_group("aqi_features", version=1)
+        df = fg.read()
+    df = df[df["city"] == city.lower()]
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values("timestamp").tail(72)
     return df
