@@ -30,7 +30,7 @@ TARGET_COL = "aqi"
 def load_training_data() -> pd.DataFrame:
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     fs = project.get_feature_store()
-    fg = fs.get_feature_group("aqi_features", version=1)
+    fg = fs.get_feature_group("aqi_features", version=2)
     df = fg.read()
     print(f"Loaded {len(df)} rows from feature store.")
     return df
