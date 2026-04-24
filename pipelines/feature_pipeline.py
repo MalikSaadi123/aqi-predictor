@@ -105,7 +105,7 @@ def push_to_feature_store(df: pd.DataFrame):
 
     fg = fs.get_or_create_feature_group(
         name="aqi_features",
-        version=1,
+        version=2,
         primary_key=["timestamp", "city"],
         description="Hourly AQI features with weather data",
         event_time="timestamp",
