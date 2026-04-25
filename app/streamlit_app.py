@@ -19,6 +19,7 @@ st.set_page_config(
 
 HOPSWORKS_KEY = os.environ["HOPSWORKS_API_KEY"]
 st.cache_data.clear()
+st.cache_resource.clear()
 CITY        = os.environ.get("CITY", "islamabad")
 AQICN_TOKEN = os.environ.get("AQICN_TOKEN", "")
 
