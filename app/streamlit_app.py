@@ -44,7 +44,7 @@ def aqi_info(value: float):
 def load_model_and_features():
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     mr = project.get_model_registry()
-    model_meta = mr.get_model("aqi_predictor", version=3)
+    model_meta = mr.get_model("aqi_predictor", version=1)
     model_dir  = model_meta.download()
     model      = joblib.load(os.path.join(model_dir, "best_model.pkl"))
     with open(os.path.join(model_dir, "feature_names.json")) as f:
@@ -59,7 +59,7 @@ def load_recent_features(city: str) -> pd.DataFrame:
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     fs = project.get_feature_store()
     try:
-        fg = fs.get_feature_group("aqi_features", version=2)
+        fg = fs.get_feature_group("aqi_features", version=1)
         df = fg.read()
     except:
         fg = fs.get_feature_group("aqi_features", version=1)
