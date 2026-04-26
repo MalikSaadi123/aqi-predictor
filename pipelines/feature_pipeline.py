@@ -59,7 +59,7 @@ def compute_features(aqi_data: dict, weather_data: dict) -> pd.DataFrame:
     day       = int(now.day)
     month     = int(now.month)
     weekday   = int(now.weekday())
-    is_weekend= int(weekday >= 5)
+    "is_weekend": bool(dt.weekday() >= 5),
 
     # Cyclical features
     hour_sin  = float(np.sin(2 * np.pi * hour  / 24))
@@ -88,7 +88,7 @@ def compute_features(aqi_data: dict, weather_data: dict) -> pd.DataFrame:
         "day":            np.int32(day),
         "month":          np.int32(month),
         "weekday":        np.int32(weekday),
-        "is_weekend":     int(is_weekend),
+        "is_weekend":     np.int32(is_weekend),
         "hour_sin":       hour_sin,
         "hour_cos":       hour_cos,
         "month_sin":      month_sin,
@@ -105,12 +105,12 @@ def compute_features(aqi_data: dict, weather_data: dict) -> pd.DataFrame:
 
 # ── 3. STORE IN HOPSWORKS FEATURE STORE ─────────────────────────────────────
 def push_to_feature_store(df: pd.DataFrame):
+    df["is_weekend"] = df["is_weekend"].astype("int32")
     project = hopsworks.login(api_key_value=HOPSWORKS_KEY)
     fs = project.get_feature_store()
-
     fg = fs.get_or_create_feature_group(
         name="aqi_features",
-        version=2,
+        version=1,
         primary_key=["timestamp", "city"],
         description="Hourly AQI features with weather data",
         event_time="timestamp",
