@@ -19,7 +19,7 @@ st.set_page_config(
 
 HOPSWORKS_KEY = os.environ["HOPSWORKS_API_KEY"]
 CITY          = os.environ.get("CITY", "islamabad")
-AQICN_TOKEN   = os.environ.get("AQICN_TOKEN", "")
+OPENWEATHER_TOKEN = os.environ.get("OPENWEATHER_TOKEN", "")
 
 AQI_LEVELS = [
     (0,   50,  "#00e400", "Good",                          "Air quality is satisfactory."),
@@ -88,16 +88,21 @@ def fetch_future_weather() -> pd.DataFrame:
     return df.head(72)
 
 
-@st.cache_data(ttl=1)
-def fetch_real_aqi(city: str, token: str) -> float:
+@st.cache_data(ttl=600)
+def fetch_real_aqi(token: str) -> float:
     try:
-        url  = f"https://api.waqi.info/feed/{city}/?token={token}"
+        url  = "https://api.openweathermap.org/data/2.5/air_pollution?lat=33.72148&lon=73.04329&appid=" + token
         resp = requests.get(url, timeout=10).json()
-        if resp["status"] == "ok":
-            return float(resp["data"]["aqi"])
+        pm25 = resp["list"][0]["components"]["pm2_5"]
+        if pm25 <= 12.0:    aqi = (50/12.0) * pm25
+        elif pm25 <= 35.4:  aqi = 50 + (50/23.4) * (pm25 - 12.0)
+        elif pm25 <= 55.4:  aqi = 100 + (50/19.9) * (pm25 - 35.4)
+        elif pm25 <= 150.4: aqi = 150 + (50/94.9) * (pm25 - 55.4)
+        elif pm25 <= 250.4: aqi = 200 + (100/99.9) * (pm25 - 150.4)
+        else:                aqi = 300 + (200/149.9) * (pm25 - 250.4)
+        return round(aqi, 1)
     except Exception:
-        pass
-    return None
+        return None
 
 
 def build_forecast_features(future_weather: pd.DataFrame, history: pd.DataFrame, feature_names: list):
@@ -153,7 +158,7 @@ with st.spinner("Loading model and data..."):
         df_future["predicted_aqi"] = np.clip(predictions, 0, 500)
 
         # Fetch live AQI directly from AQICN
-        real_aqi    = fetch_real_aqi(city_input, AQICN_TOKEN)
+        real_aqi    = fetch_real_aqi(OPENWEATHER_TOKEN)
         current_aqi = real_aqi if real_aqi is not None else float(predictions[0])
         color, label, desc = aqi_info(current_aqi)
 
