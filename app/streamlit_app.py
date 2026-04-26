@@ -88,7 +88,7 @@ def fetch_future_weather() -> pd.DataFrame:
     return df.head(72)
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=1)
 def fetch_real_aqi(city: str, token: str) -> float:
     try:
         url  = f"https://api.waqi.info/feed/{city}/?token={token}"
