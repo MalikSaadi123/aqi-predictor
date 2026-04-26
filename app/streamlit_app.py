@@ -206,7 +206,7 @@ with st.spinner("Loading model and data..."):
             stats = history_df["aqi"].describe().round(2)
             st.dataframe(stats.to_frame().T, use_container_width=True)
         except Exception as eda_err:
-            st.warning(f"EDA error: {eda_err}")
+            st.warning(f"EDA not available — feature store needs more data collected over time.")
 
         st.subheader("📆 3-Day Daily Summary")
         df_future["date"] = df_future["timestamp"].dt.date
