@@ -6,19 +6,24 @@ from datetime import datetime
 import hopsworks
 
 # ── CONFIG ──────────────────────────────────────────────────────────────────
-AQICN_TOKEN   = os.environ["AQICN_TOKEN"]
+OPENWEATHER_TOKEN = os.environ["OPENWEATHER_TOKEN"]
 HOPSWORKS_KEY = os.environ["HOPSWORKS_API_KEY"]
 CITY          = os.environ.get("CITY", "islamabad")
 
 # ── 1. FETCH RAW DATA ────────────────────────────────────────────────────────
 def fetch_aqi_data(city: str) -> dict:
-    url = f"https://api.waqi.info/feed/{city}/?token={AQICN_TOKEN}"
+    url  = f"https://api.openweathermap.org/data/2.5/air_pollution?lat=33.72148&lon=73.04329&appid={OPENWEATHER_TOKEN}"
     resp = requests.get(url, timeout=10)
     resp.raise_for_status()
     data = resp.json()
-    if data["status"] != "ok":
-        raise ValueError(f"AQICN error: {data}")
-    return data["data"]
+    pm25 = data["list"][0]["components"]["pm2_5"]
+    if pm25 <= 12.0:    aqi = (50/12.0) * pm25
+    elif pm25 <= 35.4:  aqi = 50 + (50/23.4) * (pm25 - 12.0)
+    elif pm25 <= 55.4:  aqi = 100 + (50/19.9) * (pm25 - 35.4)
+    elif pm25 <= 150.4: aqi = 150 + (50/94.9) * (pm25 - 55.4)
+    elif pm25 <= 250.4: aqi = 200 + (100/99.9) * (pm25 - 150.4)
+    else:               aqi = 300 + (200/149.9) * (pm25 - 250.4)
+    return {"aqi": round(aqi, 1), "pm25": pm25}
 
 def fetch_weather_data() -> dict:
     """Fetch weather from Open-Meteo using hardcoded Islamabad coordinates."""
