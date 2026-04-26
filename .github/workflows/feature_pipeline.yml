@@ -24,8 +24,7 @@ jobs:
 
       - name: Run feature pipeline
         env:
-          AQICN_TOKEN:        ${{ secrets.AQICN_TOKEN }}
-          HOPSWORKS_API_KEY:  ${{ secrets.HOPSWORKS_API_KEY }}
-          OPENAQ_KEY:         ${{ secrets.OPENAQ_KEY }}
-          CITY:               ${{ vars.CITY || 'rawalpindi' }}
+          OPENWEATHER_TOKEN: ${{ secrets.OPENWEATHER_TOKEN }}
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+          CITY: islamabad
         run: python pipelines/feature_pipeline.py
