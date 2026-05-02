@@ -27,13 +27,25 @@ def fetch_aqi_data() -> dict:
 
 
 def fetch_weather_data() -> dict:
-    url = (
-        "https://api.open-meteo.com/v1/forecast?"
-        "latitude=33.72148&longitude=73.04329"
-        "&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,precipitation"
-        "&forecast_days=1&timezone=UTC"
+    """Fetch weather from Open-Meteo using hardcoded Islamabad coordinates."""
+    lat = 33.72148
+    lon = 73.04329
+    weather_url = (
+        f"https://api.open-meteo.com/v1/forecast?"
+        f"latitude={lat}&longitude={lon}"
+        f"&hourly=temperature_2m,relativehumidity_2m,windspeed_10m,precipitation"
+        f"&forecast_days=1&timezone=UTC"
     )
-    return requests.get(url, timeout=10).json()
+    for attempt in range(3):  # retry 3 times
+        try:
+            resp = requests.get(weather_url, timeout=15)
+            if resp.status_code == 200 and resp.text.strip():
+                return resp.json()
+        except Exception as e:
+            print(f"Attempt {attempt+1} failed: {e}")
+        import time
+        time.sleep(5)
+    raise ValueError("Could not fetch weather data after 3 attempts")
 
 
 # ── 2. COMPUTE FEATURES ──────────────────────────────────────────────────────
