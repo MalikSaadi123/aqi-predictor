@@ -51,7 +51,7 @@ def load_recent_features(city: str) -> pd.DataFrame:
         fg = fs.get_feature_group("aqi_features", version=1)
         if fg is None:
             return pd.DataFrame()
-        df = fg.read()
+        df = fg.read(read_options={"use_hive": True})
         if df is None or len(df) == 0:
             return pd.DataFrame()
         if "city" in df.columns:
@@ -62,7 +62,6 @@ def load_recent_features(city: str) -> pd.DataFrame:
     except Exception as e:
         st.warning(f"Feature store error: {e}")
         return pd.DataFrame()
-
 @st.cache_data(ttl=3600)
 def fetch_future_weather() -> pd.DataFrame:
     url = ("https://api.open-meteo.com/v1/forecast?latitude=33.72148&longitude=73.04329"
