@@ -49,13 +49,19 @@ def load_recent_features(city: str) -> pd.DataFrame:
     fs = project.get_feature_store()
     try:
         fg = fs.get_feature_group("aqi_features", version=1)
+        if fg is None:
+            return pd.DataFrame()
         df = fg.read()
-    except Exception:
+        if df is None or len(df) == 0:
+            return pd.DataFrame()
+        if "city" in df.columns:
+            df = df[df["city"] == city.lower()]
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df.sort_values("timestamp").tail(72)
+        return df
+    except Exception as e:
+        st.warning(f"Feature store error: {e}")
         return pd.DataFrame()
-    df = df[df["city"] == city.lower()]
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df = df.sort_values("timestamp").tail(72)
-    return df
 
 @st.cache_data(ttl=3600)
 def fetch_future_weather() -> pd.DataFrame:
